@@ -1,0 +1,59 @@
+// 引数：行か列の片方
+// O(n log n)
+template<typename T>
+vector<T> compress(vector<T> &c1,vector<T> &c2){
+    vector<T> rec;
+    int n=c1.size();
+    rep(i,n){
+        for(T d=0;d<=1;d++){ //for(T d=0;d<=0;d++)
+            rec.push_back(c1[i]+d);
+            rec.push_back(c2[i]+d);
+        }
+    }
+    sort(all(rec));
+    rec.erase(unique(all(rec)),rec.end());
+    rep(i,n){
+        c1[i]=lower_bound(all(rec),c1[i])-rec.begin();
+        c2[i]=lower_bound(all(rec),c2[i])-rec.begin();
+    }
+    return rec;
+}
+
+int main(){
+    int n;
+    cin>>n;
+    vector<int> x1(n),x2(n),y1(n),y2(n);
+    rep(i,n){
+        cin>>x1[i]>>y1[i]>>x2[i]>>y2[i];
+    }
+    vector<int> x=compress(x1,x2);
+    vector<int> y=compress(y1,y2);
+    int w=x.size();
+    int h=y.size();
+    vector<vector<int>> G(w,vector<int>(h));
+    rep(i,n){
+        G[x1[i]][y1[i]]++;
+        G[x2[i]][y2[i]]++;
+        G[x2[i]][y1[i]]--;
+        G[x1[i]][y2[i]]--;
+    }
+    for(int i=1;i<w;i++){
+        for(int j=0;j<h;j++){
+            G[i][j]+=G[i-1][j];
+        }
+    }
+    for(int i=0;i<w;i++){
+        for(int j=1;j<h;j++){
+            G[i][j]+=G[i][j-1];
+        }
+    }
+    ll ans=0;
+    for(int i=0;i<w-1;i++){
+        for(int j=0;j<h-1;j++){
+            if(G[i][j]){
+                ans+=ll(x[i+1]-x[i])*ll(y[j+1]-y[j]);
+            }
+        }
+    }
+    cout<<ans<<endl;
+}

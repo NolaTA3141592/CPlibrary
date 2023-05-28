@@ -1,0 +1,34 @@
+struct edge{
+    int from,to,cost;
+    edge(int a,int b,int c):from(a),to(b),cost(c){}
+};
+vector<edge> es(1000);
+vector<int> dist(1000,1e9);
+void Bellman_Ford(int s){
+    dist[s]=0;
+    while(1){
+        bool update=false;
+        rep(i,E){
+            edge e=es[i];
+            if(dist[e.from]!=1e9&&dist[e.to]>dist[e.from]+e.cost){
+                update=true;
+                dist[e.to]=dist[e.from]+e.cost;
+            }
+        }
+        if(!update)break;
+    }
+}
+
+bool negative_loop(){
+    dist=vector<int>(1000,0);
+    rep(i,V){
+        rep(j,E){
+            edge e=es[j];
+            if(dist[e.from]>dist[e.to]+e.cost){
+                dist[e.to]=dist[e.from]+e.cost;
+                if(i==V-1)return true;
+            }
+        }
+    }
+    return false;
+}
