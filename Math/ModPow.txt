@@ -1,0 +1,12 @@
+//a^t(mod m)  O(log t)
+ll mpow(ll a,ll t,ll m){
+    ll rec=1;
+    while(t>0){
+        if(t&1){
+            rec=rec*a%m;
+        }
+        a=a*a%m;
+        t>>=1;
+    }
+    return rec;
+}
