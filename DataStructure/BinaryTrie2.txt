@@ -1,0 +1,63 @@
+template<int MAXLEN = 31, typename T = int, typename C = int>
+struct BinaryTrie {
+    public:
+    struct Node {
+        T num;
+        int depth;
+        vector<int> idxs;
+        C cnt;
+        vector<shared_ptr<Node>> NextNode;
+        Node(T _num, int _depth) : num(_num), depth(_depth), cnt(0), NextNode{nullptr, nullptr} {}
+    };
+    using pNode = shared_ptr<Node>;
+    pNode root;
+    BinaryTrie() {
+        root = make_shared<Node>(-1, 0);
+    }
+    void add(T bit, C cnt = 1) {
+        add(bit, root, 0, cnt);
+        return;
+    }
+    void erase(T bit, C cnt = 1) {
+        erase(bit, root, 0, cnt);
+    }
+    C count(T bit) {
+        return count(bit, root);
+    }
+
+
+    private:
+    void add(T& bit, pNode node, int depth, C cnt) {
+        node -> cnt += cnt;
+        if(depth == MAXLEN) {
+            return;
+        }
+        T nex = (bit >> (MAXLEN - depth + 1)) & 1;
+        if(node -> NextNode[nex] == nullptr) {
+            node -> NextNode[nex] = make_shared<Node>(nex, depth + 1);
+        }
+        add(bit, node -> NextNode[nex], depth + 1, cnt);
+    }
+    void erase(T& bit, pNode node, int depth, C cnt) {
+        node -> cnt -= cnt;
+        if(depth == MAXLEN) {
+            return;
+        }
+        T nex = (bit >> (MAXLEN - depth + 1)) & 1;
+        if(node -> NextNode[nex] == nullptr) {
+            return;
+        }
+        erase(bit, node -> NextNode[nex], depth + 1, cnt);
+        return;
+    }
+    C count(T& bit, pNode node, int depth = 0) {
+        if(depth == MAXLEN) {
+            return node -> cnt;
+        }
+        T nex = (bit >> (MAXLEN - depth + 1)) & 1;
+        if(node -> NextNode[nex] == nullptr) {
+            return 0;
+        }
+        return count(bit, node -> NextNode[nex], depth + 1);
+    }
+};
