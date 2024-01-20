@@ -1,0 +1,69 @@
+#include <bits/stdc++.h>
+#include <atcoder/all>
+using namespace std;
+using namespace atcoder;
+using mint = modint998244353;
+#define rep(i, n) for (int i = 0; i < (int)(n); i++)
+#define reps(i, n) for (int i = 1; i <= (int)(n); i++)
+#define all(x) (x).begin(),(x).end()
+#define rall(x) (x).rbegin(),(x).rend()
+using ll = long long;
+typedef pair<int, int> P;
+#define EPS (1e-12)
+// const int MOD=1e9+7;
+// const int vx[]={0,1,0,-1},vy[]={1,0,-1,0};
+template<class T>T gcd(T a,T b){return b?gcd(b,a%b):a;}
+template<class T>T lcm(T a,T b){return a*b/gcd(a,b);}
+template<class T>bool chmax(T &a, const T &b) { if (a<b) { a=b; return 1; } return 0; }
+template<class T>bool chmin(T &a, const T &b) { if (b<a) { a=b; return 1; } return 0; }
+
+// ABC293-G
+int main(){
+    int n, q;
+    cin >> n >> q;
+    vector<int> dat(n);
+    rep(i, n) cin >> dat[i];
+    using tup = tuple<int, int, int>;
+    int k = 500;
+    vector<vector<tup>> query(k);
+
+    rep(i, q) {
+        int a, b; cin >> a >> b;
+        a--; b--;
+        query[a / k].push_back(tup(b, a, i));
+    }
+    rep(i, k) {
+        sort(all(query[i]));
+    }
+
+    vector<ll> cnt(3e5);
+    ll now = 0;
+    int l = 0, r = -1; // [l, r]
+    vector<ll> ans(q);
+    rep(blk, k) {
+        for(auto [b, a, ind] : query[blk]) {
+            while(a < l) {
+                l--;
+                now += cnt[dat[l]] * (cnt[dat[l]] - 1) / 2;
+                cnt[dat[l]]++;
+            }
+            while(l < a) {
+                cnt[dat[l]]--;
+                now -= cnt[dat[l]] * (cnt[dat[l]] - 1) / 2;
+                l++;
+            }
+            while(b < r) {
+                cnt[dat[r]]--;
+                now -= cnt[dat[r]] * (cnt[dat[r]] - 1) / 2;
+                r--;
+            }
+            while(r < b) {
+                r++;
+                now += cnt[dat[r]] * (cnt[dat[r]] - 1) / 2;
+                cnt[dat[r]]++;
+            }
+            ans[ind] = now;
+        }
+    }
+    rep(i, q) cout << ans[i] << endl;
+}
