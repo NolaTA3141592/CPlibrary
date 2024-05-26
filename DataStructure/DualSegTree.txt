@@ -1,0 +1,57 @@
+// verify ABC342-G
+template <typename X, typename NODE, typename M>
+struct DualSegTree {
+    using FX = function<void(X&, const NODE&)>;
+    using FA = function<void(NODE&, M&)>;
+    int n;
+    FX fx;
+    FA fa;
+    const X ex;
+    const NODE enode;
+    vector<X> dat;
+    vector<NODE> node;
+    DualSegTree(int n_, FX fx_, FA fa_, X ex_, NODE enode_)
+        : n(), fx(fx_), fa(fa_), ex(ex_), enode(enode_), dat(n_ * 4, ex), node(n_ * 4, enode_) {
+        int x = 1;
+        while (n_ > x) x *= 2;
+        n = x;
+    }
+
+    void set(int i, X x) { dat[i + n - 1] = x; }
+
+    void update(int a, int b, M x, int k, int l, int r) {
+        if (a <= l && r <= b) {  // 完全に内側の時
+            fa(node[k], x);
+        } else if (a < r && l < b) {                     // 一部区間が被る時
+            update(a, b, x, k * 2 + 1, l, (l + r) / 2);  // 左の子
+            update(a, b, x, k * 2 + 2, (l + r) / 2, r);  // 右の子
+        }
+    }
+    void update(int a, int b, M x) { update(a, b, x, 0, 0, n); }
+
+    X query(int i) {
+        i = i + n - 1;
+        X now = dat[i];
+        while(i > 0) {
+            fx(now, node[i]);
+            i = (i - 1) / 2;
+        }
+        fx(now, node[0]);
+        return now;
+    }
+};
+
+using X = int;
+using NODE = multiset<int>;
+using M = int;
+auto fx = [](X& x, const NODE& node) { if (x < *node.rbegin()) {x = *node.rbegin(); } };
+auto fa = [](NODE& x, M& m) {
+    if(m > 0) x.insert(m);
+    if(m < 0) {
+        x.erase(x.lower_bound(-m));
+    }
+};
+X ex = 0;
+NODE enode;
+enode.insert(0);
+DualSegTree<X, NODE, M> seg(n, fx, fa, ex, enode);
