@@ -1,8 +1,11 @@
 /* varify
     diameter : https://atcoder.jp/contests/abc361/submissions/55323033
+    LCA      : https://judge.u-aizu.ac.jp/onlinejudge/review.jsp?rid=9459125#1
+    Auxiliary: https://atcoder.jp/contests/abc359/submissions/55589339
 */
 template<typename C = long long, C MAX = (long long)2e18>
-struct Tree {
+class Tree {
+public:
     struct edge {
         int from, to;
         C cost;
@@ -13,10 +16,12 @@ struct Tree {
     vector<C> dist;
     vector<int> depth;
     vector<vector<int>> parent;
+    vector<int> preOrder;
     Tree(int n) : n(n) {
         is_build = false;
         G = vector<vector<edge>>(n);
     };
+private:
     void build_dist(int root) {
         dist = vector<C> (n, MAX);
         depth = vector<int> (n, 1e9);
@@ -54,6 +59,18 @@ struct Tree {
             }
         }
     }
+    void build_preOrder(int root) {
+        preOrder = vector<int>(n);
+        int k = 0;
+        auto dfs = [&](auto self, int now, int par = -1) -> void {
+            preOrder[now] = k++;
+            for(auto [from, to, cost] : G[now]) {
+                if(to == par) continue;
+                self(self, to, from);
+            }
+        };
+        dfs(dfs, root);
+    }
 public:
     void add_edge(int a, int b, ll c = 1) {
         G[a].push_back(edge{a, b, c});
@@ -63,6 +80,7 @@ public:
     void build(int root = 0) {
         build_dist(root);
         build_lca(root);
+        build_preOrder(root);
     }
     // O(N)
     pair<C, pair<int, int>> diameter() {
@@ -107,5 +125,41 @@ public:
     // O(logN)
     C is_on_path(int l, int r, int mid) {
         return get_dist(l, mid) + get_dist(mid, r) == get_dist(l, r);
+    }
+    // O(|vs|logN)
+    int auxiliary(vector<int>& vs, unordered_map<int, vector<int>>& rec) {
+        int m = vs.size();
+        sort(vs.begin(), vs.end(), [this](int a, int b){return preOrder[a] < preOrder[b];});
+        stack<int> st;
+        st.push(vs[0]);
+        for(int i = 1; i < m; i++) {
+            int w = this->lca(vs[i - 1], vs[i]);
+            if(w != vs[i - 1]) {
+                int last = st.top(); st.pop();
+                while(st.size() && depth[w] < depth[st.top()]) {
+                    rec[st.top()].push_back(last);
+                    last = st.top(); st.pop();
+                }
+                if(st.empty() || st.top() != w) {
+                    st.push(w);
+                    vs.push_back(w);
+                    rec[w].push_back(last);
+                }
+                else {
+                    rec[w].push_back(last);
+                }
+            }
+            st.push(vs[i]);
+        }
+        if(st.size() > 1) {
+            int last = st.top(); st.pop();
+            while(st.size() > 1) {
+                rec[st.top()].push_back(last);
+                last = st.top();
+                st.pop();
+            }
+            rec[st.top()].push_back(last);
+        }
+        return st.top();
     }
 };
