@@ -1,0 +1,20 @@
+// range add & 最小値とその個数
+struct S {
+    ll num, cnt;
+};
+using X = S;
+using M = ll;
+auto fx = [](X x1, X x2) -> X {
+    if(x1.num < x2.num) return x1;
+    else if(x2.num < x1.num) return x2;
+    return X{x1.num, x1.cnt + x2.cnt};
+};
+auto fa = [](X x, M m) -> X {
+    return X{x.num + m, x.cnt};
+};
+auto fm = [](M m1, M m2) -> M { return m1 + m2; };
+X ex = X{200100100200, 1};
+M em = 0;
+SegTreeLazy<X, M> seg(n, fx, fa, fm, ex, em);
+rep(i, n) seg.set(i, X{0, 1});
+seg.build();
