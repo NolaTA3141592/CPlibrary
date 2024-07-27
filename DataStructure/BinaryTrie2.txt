@@ -1,6 +1,5 @@
 // xor非対応
 // 全然verifyしてない
-// https://atcoder.jp/contests/abc287/submissions/55983761
 // val, bit, count
 template<typename T = int, typename B = int, typename C = int, int MAXLEN = 31>
 struct BinaryTrie {
@@ -68,6 +67,10 @@ public:
     }
     T query_noless(B bit) {
         return query_more(bit - 1, root, 0);
+    }
+    T rightkth_query(C c) {
+        auto [res, p] = rightkth_element(c - 1);
+        return fx(fbc(p->key, (res + 1)), query_more(p->key));
     }
 
 
@@ -179,3 +182,4 @@ private:
         return rec;
     }
 };
+
