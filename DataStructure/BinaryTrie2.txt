@@ -1,63 +1,181 @@
-template<int MAXLEN = 31, typename T = int, typename C = int>
+// xor非対応
+// 全然verifyしてない
+// https://atcoder.jp/contests/abc287/submissions/55983761
+// val, bit, count
+template<typename T = int, typename B = int, typename C = int, int MAXLEN = 31>
 struct BinaryTrie {
-    public:
+public:
+    using FX = function<T(T, T)>;
+    using FBX = function<T(B, C)>;
+    FX fx;
+    FBX fbc;
     struct Node {
-        T num;
+        B key;
+        T val;
+        C cnt;
         int depth;
         vector<int> idxs;
-        C cnt;
-        vector<shared_ptr<Node>> NextNode;
-        Node(T _num, int _depth) : num(_num), depth(_depth), cnt(0), NextNode{nullptr, nullptr} {}
+        shared_ptr<Node> NextNode[2];
+        Node(B _key = 0, int _depth = 0) : key(_key), depth(_depth), cnt(0), NextNode{nullptr, nullptr} {}
     };
     using pNode = shared_ptr<Node>;
     pNode root;
-    BinaryTrie() {
+    BinaryTrie(FX _fx = [](T a, T b) -> T { return a + b; }, FBX _fbc = [](B a, C b) -> T { return a * b; }) {
+        fx = _fx;
+        fbc = _fbc;
         root = make_shared<Node>(-1, 0);
     }
-    void add(T bit, C cnt = 1) {
-        add(bit, root, 0, cnt);
-        return;
+    void insert(B bit, C cnt = 1) {
+        insert(bit, root, 0, cnt);
     }
-    void erase(T bit, C cnt = 1) {
+    void erase(B bit, C cnt = 1) {
         erase(bit, root, 0, cnt);
     }
-    C count(T bit) {
+    C count(B bit) {
         return count(bit, root);
     }
+    // 0-indexed
+    pair<C, pNode> leftkth_element(C k) {
+        assert(0 <= k);
+        return leftkth_element(root, 0, k);
+    }
+    pair<C, pNode> rightkth_element(C k) {
+        assert(0 <= k);
+        auto rec = leftkth_element(root->cnt - k - 1);
+        rec.first = rec.second->cnt - rec.first - 1;
+        return rec;
+    }
+    pNode min_element() {
+        return leftkth_element(0).second;
+    }
+    pNode max_element() {
+        return leftkth_element(root->cnt - 1).second;
+    }
+    C count_less(B bit) {
+        return count_less(bit, root, 0);
+    }
+    C count_more(B bit) {
+        return count_more(bit, root, 0);
+    }
+    T query_less(B bit) {
+        return query_less(bit, root, 0);
+    }
+    T query_nomore(B bit) {
+        return query_less(bit + 1, root, 0);
+    }
+    T query_more(B bit) {
+        return query_more(bit, root, 0);
+    }
+    T query_noless(B bit) {
+        return query_more(bit - 1, root, 0);
+    }
 
 
-    private:
-    void add(T& bit, pNode node, int depth, C cnt) {
-        node -> cnt += cnt;
+private:
+    void cal(pNode node) {
+        if(node->depth == MAXLEN) node->val = fbc(node->key, node->cnt);
+        else {
+            if(node->NextNode[0] && node->NextNode[1]) {
+                node->val = fx(node->NextNode[0]->val, node->NextNode[1]->val);
+            }
+            else if(node->NextNode[0]) node->val = node->NextNode[0]->val;
+            else if(node->NextNode[1]) node->val = node->NextNode[1]->val;
+        }
+    }
+    void insert(B& bit, pNode node, int depth, C cnt) {
+        node->cnt += cnt;
         if(depth == MAXLEN) {
+            node->key = bit;
+            cal(node);
             return;
         }
-        T nex = (bit >> (MAXLEN - depth + 1)) & 1;
-        if(node -> NextNode[nex] == nullptr) {
-            node -> NextNode[nex] = make_shared<Node>(nex, depth + 1);
+        B nex = (bit >> (MAXLEN - depth - 1));
+        if(node -> NextNode[nex & 1] == nullptr) {
+            node -> NextNode[nex & 1] = make_shared<Node>(nex, depth + 1);
         }
-        add(bit, node -> NextNode[nex], depth + 1, cnt);
+        insert(bit, node -> NextNode[nex & 1], depth + 1, cnt);
+        cal(node);
     }
-    void erase(T& bit, pNode node, int depth, C cnt) {
+    void erase(B& bit, pNode node, int depth, C cnt) {
         node -> cnt -= cnt;
         if(depth == MAXLEN) {
+            cal(node);
             return;
         }
-        T nex = (bit >> (MAXLEN - depth + 1)) & 1;
+        B nex = (bit >> (MAXLEN - depth - 1)) & 1;
         if(node -> NextNode[nex] == nullptr) {
             return;
         }
         erase(bit, node -> NextNode[nex], depth + 1, cnt);
-        return;
+        cal(node);
     }
-    C count(T& bit, pNode node, int depth = 0) {
+    C count(B& bit, pNode node, int depth = 0) {
         if(depth == MAXLEN) {
             return node -> cnt;
         }
-        T nex = (bit >> (MAXLEN - depth + 1)) & 1;
+        B nex = (bit >> (MAXLEN - depth - 1)) & 1;
         if(node -> NextNode[nex] == nullptr) {
             return 0;
         }
         return count(bit, node -> NextNode[nex], depth + 1);
+    }
+    pair<C, pNode> leftkth_element(pNode node, int depth, C k) {
+        if(depth == MAXLEN) {
+            return make_pair(k, node);
+        }
+        if(node -> NextNode[0]) {
+            // cout << node->NextNode[0]->cnt << endl;
+            if(k < node->NextNode[0]->cnt) {
+                return leftkth_element(node->NextNode[0], depth + 1, k);
+            }
+            k -= node->NextNode[0]->cnt;
+        }
+        if(node -> NextNode[1]) {
+            if(k < node->NextNode[1]->cnt) {
+                return leftkth_element(node->NextNode[1], depth + 1, k);
+            }
+            k -= node->NextNode[1]->cnt;
+        }
+        return make_pair(k, nullptr);
+    }
+    C count_less(B& bit, pNode node, int depth) {
+        if(depth == MAXLEN) {
+            return 0;
+        }
+        C rec = 0;
+        B nex = (bit >> (MAXLEN - depth - 1)) & 1;
+        if(nex == 1 && node->NextNode[0]) rec += node->NextNode[0]->cnt;
+        if(node->NextNode[nex]) rec += count_less(bit, node->NextNode[nex], depth + 1);
+        return rec;
+    }
+    C count_more(B& bit, pNode node, int depth) {
+        if(depth == MAXLEN) {
+            return 0;
+        }
+        C rec = 0;
+        B nex = (bit >> (MAXLEN - depth - 1)) & 1;
+        if(nex == 0 && node->NextNode[1]) rec += node->NextNode[1]->cnt;
+        if(node->NextNode[nex]) rec += count_more(bit, node->NextNode[nex], depth + 1);
+        return rec;
+    }
+    T query_less(B& bit, pNode node, int depth) {
+        if(depth == MAXLEN) {
+            return 0;
+        }
+        T rec = 0;
+        B nex = (bit >> (MAXLEN - depth - 1)) & 1;
+        if(nex == 1 && node->NextNode[0]) rec = fx(rec, node->NextNode[0]->val);
+        if(node->NextNode[nex]) rec = fx(rec, query_less(bit, node->NextNode[nex], depth + 1));
+        return rec;
+    }
+    T query_more(B& bit, pNode node, int depth) {
+        if(depth == MAXLEN) {
+            return 0;
+        }
+        T rec = 0;
+        B nex = (bit >> (MAXLEN - depth - 1)) & 1;
+        if(nex == 0 && node->NextNode[1]) rec = fx(rec, node->NextNode[1]->val);
+        if(node->NextNode[nex]) rec = fx(rec, query_more(bit, node->NextNode[nex], depth + 1));
+        return rec;
     }
 };
