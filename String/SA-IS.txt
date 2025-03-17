@@ -1,0 +1,132 @@
+struct SuffixArray {
+    //  n : length
+    //  m : number of character types
+    //  s : string
+    // sa : suffix array
+    int n, m;
+    vector<int> s;
+    vector<int> sa;
+    SuffixArray(string t, int m = 256):m(m) {
+        n = t.size();
+        s = vector<int>(n);
+        sa = vector<int>(n, -1);
+        for(int i = 0; i < n; i++) s[i] = int(t[i]);
+        sais(s, sa, n, m);
+    }
+    void sais(const vector<int>& ints, vector<int>& sa, const int n, const int m) {
+
+        // L-typeとS-typeの判定
+        vector<bool> isLtype(n);
+        for(int i = n - 1; i >= 0; i--) {
+            if(i == n - 1) isLtype[i] = true;
+            else {
+                if(ints[i] > ints[i + 1]) isLtype[i] = true;
+                if(ints[i] == ints[i + 1]) isLtype[i] = isLtype[i + 1];
+                if(ints[i] < ints[i + 1]) isLtype[i] = false;
+            }
+        }
+
+        // 文字iから始まるsuffixは、[ bins[i],bins[i+1] ) に配置される
+        vector<int> bins(m + 1);
+        for(int i = 0; i < n; i++) bins[ints[i] + 1]++;
+        for(int i = 0; i < m; i++) bins[i + 1] += bins[i];
+
+        auto InducedSort = [&ints, &sa, &n, &m, &isLtype, &bins](vector<int>& induces) {
+            vector<int> cnt(m + 1);
+            // step1
+            // LMSを配置
+            for(int i = induces.size() - 1; i >= 0; i--) {
+                cnt[ints[induces[i]]]++;
+                sa[bins[ints[induces[i]] + 1] - cnt[ints[induces[i]]]] = induces[i];
+            }
+            // step2
+            // L-typeを配置
+            cnt = vector<int>(m + 1);
+            if(isLtype[n - 1]) {
+                // sentinelは無いが、末尾はかならずL型
+                sa[bins[ints[n - 1]] + cnt[ints[n - 1]]] = n - 1;
+                cnt[ints[n - 1]]++;
+            }
+            for(int i = 0; i < n; i++) {
+                if(sa[i] > 0 && isLtype[sa[i] - 1]) {
+                    sa[bins[ints[sa[i] - 1]] + cnt[ints[sa[i] - 1]]] = sa[i] - 1;
+                    cnt[ints[sa[i] - 1]]++;
+                }
+            }
+            // step3
+            // S-typeを配置
+            cnt = vector<int>(m + 1);
+            for(int i = n - 1; i >= 0; i--) {
+                if(sa[i] > 0 && !isLtype[sa[i] - 1]) {
+                    cnt[ints[sa[i] - 1]]++;
+                    sa[bins[ints[sa[i] - 1] + 1] - cnt[ints[sa[i] - 1]]] = sa[i] - 1;
+                }
+            }
+        };
+
+        // first InducedSort
+        vector<int> LMS;
+        for(int i = 0; i < n; i++) {
+            if((i == 0 || isLtype[i - 1]) && !isLtype[i]) {
+                LMS.push_back(i);
+            }
+        }
+        sa = vector<int>(n, -1);
+        InducedSort(LMS);
+
+        // analyze InducedSort
+        vector<int> sub_ints(LMS.size());
+        vector<bool> isLMS(n);
+        for(int i = 0; i < LMS.size(); i++) isLMS[LMS[i]] = true;
+        vector<int> lmssubstr_r(n);
+        for(int i = n - 1; i >= 0; i--) {
+            if(i == n - 1) lmssubstr_r[i] = n - 1;
+            if(isLMS[i] && i - 1 >= 0) lmssubstr_r[i - 1] = i;
+            else if(i - 1 >= 0) lmssubstr_r[i - 1] = lmssubstr_r[i];
+        }
+        int pre = n;
+        int nextm = 0;
+        vector<int> isnextints(n);
+        for(int i = 0; i < n; i++) {
+            if(!isLMS[sa[i]]) continue;
+            int ind = sa[i];
+            bool flag = (nextm <= 0 || lmssubstr_r[ind] - ind != lmssubstr_r[pre] - pre);
+            if(!flag) {
+                for(int j = 0; j <= lmssubstr_r[ind] - ind; j++) {
+                    if(ints[ind + j] != ints[pre + j]) {
+                        flag = true;
+                        break;
+                    }
+                }
+            }
+            if(flag) {
+                nextm++;
+                pre = ind;
+            }
+            isnextints[ind] = nextm;
+        }
+        vector<int> nextints;
+        for(int i = 0; i < n; i++) {
+            if(isnextints[i]) nextints.push_back(isnextints[i] - 1);
+        }
+        int nextn = nextints.size();
+        vector<int> nextsa(nextn);
+        if(nextn == nextm) {
+            for(int i = 0; i < nextn; i++) {
+                nextsa[nextints[i]] = i;
+            }
+        }
+        else {
+            sais(nextints, nextsa, nextn, nextm);
+        }
+        vector<int> induces(nextn);
+        for(int i = 0; i < nextn; i++) {
+            // inducesのi番目は、nextsa[i]に対応するsuffix
+            induces[i] = LMS[nextsa[i]];
+        }
+
+        // second InducedSort
+        sa = vector<int>(n, -1);
+        InducedSort(induces);
+    }
+};
